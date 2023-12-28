@@ -13,7 +13,7 @@ static color_t const White = { 0xff, 0xff, 0xff, 0xff };
 //- Private Functions
 //-
 
-void drawAcknowledgement() {
+void drawAcknowledgement(void) {
     surface_t * display = NULL; // non-owning
 
     // Grab a render buffer
