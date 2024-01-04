@@ -1,131 +1,300 @@
-#include <graphics.h>
+#include <controller.h>
 #include <libdragon.h>
+#include <n64sys.h>
+#include "render.h"
 #include <timer.h>
+
+#include <string.h>
+
+//-
+//- Types
+//-
+
+enum Button {
+    Start_e = 0x00,
+    A_e,
+    B_e,
+    CUp_e,
+    CLeft_e,
+    CRight_e,
+    CDown_e,
+    LeftShoulder_e,
+    RightShoulder_e,
+    Z_e,
+    DPadUp_e,
+    DPadLeft_e,
+    DPadRight_e,
+    DPadDown_e,
+    ButtonSize_e
+};
+
+enum ButtonState {
+    Released_e = 0,
+    Down_e,
+    Pressed_e
+};
 
 //-
 //- Static Data
 //-
 
-// No transparency
-static color_t const Black = { 0x00, 0x00, 0x00, 0xff };
-static color_t const Grey = { 0x80, 0x80, 0x80, 0xff };
-static color_t const White = { 0xff, 0xff, 0xff, 0xff };
-static color_t const Red = { 0xff, 0x00, 0x00, 0xff };
-static color_t const Green = { 0x00, 0xff, 0x00, 0xff };
-static color_t const Blue = { 0x00, 0x00, 0xff, 0xff };
-static color_t const Yellow = { 0xff, 0xff, 0x00, 0xff };
+#define ControllerCount 4
+static bool ButtonPressed[ControllerCount][ButtonSize_e];
+static enum Button ButtonReleased[ControllerCount][ButtonSize_e];
+static unsigned ButtonReleasedBack[ControllerCount] = { 0, 0, 0, 0 };
+
+static bool GameStatePaused = true;
 
 //-
 //- Private Functions
 //-
 
 void resetBoard(int ovfl) {
-    surface_t * display = NULL; // non-owning
+    if (!RenderIsBuilding()) { RenderStart(); }
 
-    // Grab a render buffer
-    while(!(display = display_lock()));
+    struct RenderAction bg;
+    bg.command = BlankScreen_e;
+    bg.data.blankScreen.color = Black_e;
+    RenderAddAction(&bg);
 
-    // Fill the screen
-    graphics_fill_screen(display, graphics_convert_color(Black));
+    //- Draw selector
 
-    // Draw selector
-    graphics_draw_box(
-        display,
-        10,
-        5,
-        50,
-        40,
-        graphics_convert_color(White)
-    );
+    struct RenderAction rect;
+    rect.command = DrawFilledRect_e;
+    rect.data.filledRect.topLeftX = 10;
+    rect.data.filledRect.topLeftY = 5;
+    rect.data.filledRect.width = 50;
+    rect.data.filledRect.height = 40;
+    rect.data.filledRect.color = White_e;
+    RenderAddAction(&rect);
 
-    // Draw squares
-    graphics_draw_box(
-        display,
-        15,
-        10,
-        40,
-        30,
-        graphics_convert_color(Red)
-    );
-    graphics_draw_box(
-        display,
-        65,
-        10,
-        40,
-        30,
-        graphics_convert_color(Green)
-    );
-    graphics_draw_box(
-        display,
-        115,
-        10,
-        40,
-        30,
-        graphics_convert_color(Blue)
-    );
-    graphics_draw_box(
-        display,
-        165,
-        10,
-        40,
-        30,
-        graphics_convert_color(Yellow)
-    );
-    graphics_draw_box(
-        display,
-        215,
-        10,
-        40,
-        30,
-        graphics_convert_color(Grey)
-    );
+    //- Draw squares
 
-    // Draw to our buffer
-    display_show(display);
+    rect.data.filledRect.topLeftX = 15;
+    rect.data.filledRect.topLeftY = 10;
+    rect.data.filledRect.width = 40;
+    rect.data.filledRect.height = 30;
+    rect.data.filledRect.color = Red_e;
+    RenderAddAction(&rect);
+
+    rect.data.filledRect.topLeftX = 65;
+    rect.data.filledRect.topLeftY = 10;
+    rect.data.filledRect.width = 40;
+    rect.data.filledRect.height = 30;
+    rect.data.filledRect.color = Green_e;
+    RenderAddAction(&rect);
+
+    rect.data.filledRect.topLeftX = 115;
+    rect.data.filledRect.topLeftY = 10;
+    rect.data.filledRect.width = 40;
+    rect.data.filledRect.height = 30;
+    rect.data.filledRect.color = Blue_e;
+    RenderAddAction(&rect);
+
+    rect.data.filledRect.topLeftX = 165;
+    rect.data.filledRect.topLeftY = 10;
+    rect.data.filledRect.width = 40;
+    rect.data.filledRect.height = 30;
+    rect.data.filledRect.color = Yellow_e;
+    RenderAddAction(&rect);
+
+    rect.data.filledRect.topLeftX = 215;
+    rect.data.filledRect.topLeftY = 10;
+    rect.data.filledRect.width = 40;
+    rect.data.filledRect.height = 30;
+    rect.data.filledRect.color = Grey_e;
+    RenderAddAction(&rect);
+
+    // Make sure we're actually rendering the game
+    GameStatePaused = false;
 }
 
-void drawAcknowledgement(void) {
-    surface_t * display = NULL; // non-owning
+void drawAcknowledgement(unsigned secondsToPauseGame) {
+    // Make sure the game doesn't render over us
+    GameStatePaused = true;
 
-    // Grab a render buffer
-    while(!(display = display_lock()));
+    if (!RenderIsBuilding()) { RenderStart(); }
 
-    // Fill the screen
-    graphics_fill_screen(display, graphics_convert_color(Black));
+    struct RenderAction blank;
+    blank.command = BlankScreen_e;
+    blank.data.blankScreen.color = Black_e;
+    RenderAddAction(&blank);
 
-    // Set the text color
-    graphics_set_color(graphics_convert_color(White), graphics_convert_color(Black));
-
-    // Draw the text
-    graphics_draw_text(display, 125, 120, "For Oliver");
-
-    // Draw to our buffer
-    display_show(display);
-}
-
-int main(void) {
-    static uint32_t const BufferCount = 2;
-
-    // Never freed
-    display_init(
-        RESOLUTION_320x240, // progressive (TODO: investigate interlaced jitter)
-        DEPTH_16_BPP,
-        BufferCount,
-        GAMMA_NONE,
-        FILTERS_RESAMPLE
-    );
-    timer_init();
-
-    drawAcknowledgement();
+    struct RenderAction text;
+    text.command = DrawText_e;
+    memcpy(text.data.text.text, "For Oliver", sizeof(char) * 11);
+    text.data.text.x = 125;
+    text.data.text.y = 120;
+    text.data.text.textColor = White_e;
+    text.data.text.bgColor = Black_e;
+    RenderAddAction(&text);
 
     new_timer(
-        TIMER_TICKS(5000000),   // 5 seconds
+        TICKS_PER_SECOND * secondsToPauseGame,
         TF_ONE_SHOT,
         resetBoard
     );
+}
+
+int main(void) {
+    uint32_t const TicksPerFrame = TICKS_PER_SECOND / 60;
+    bool lateFrame = false;
+
+    // Initialize global static data
+    for (unsigned ii = 0; ii < ControllerCount; ++ii) {
+        memset(ButtonPressed[ii], false, sizeof(bool) * ButtonSize_e);
+        memset(ButtonReleased[ii], ButtonSize_e, sizeof(enum Button) * ButtonSize_e);
+    }
+
+    // Initialize subsystems. Never freed.
+    controller_init();
+    RenderInit();
+    timer_init();
+
+    // Pre-game loop splash screen
+    RenderStart();
+    drawAcknowledgement(5);
+    RenderFinish();
 
     // Main loop
-    while (true) {}
+    while (true) {
+        // Get start ticks. Ticks for COProcessor 0 happen at half max
+        // instruction rate (46.875 MHz). This will overflow often.
+        uint32_t const startTicks = TICKS_READ();
+
+        // Open us up to render something
+        RenderStart();
+
+        if (!GameStatePaused && !lateFrame) {
+            // Get controller state
+            controller_scan();
+            int const pluggedInControllers = get_controllers_present();
+            struct controller_data const keysDown = get_keys_down();
+            struct controller_data const keysUp = get_keys_up();
+            for (int ii = 0; ii < 4; ++ii) {
+                // 0xf000, 0x0f00, 0x00f0 and 0x000f correspond to controller 1, 2,
+                // 3 and 4. See the CONTROLLER_1_INSERTED, etc. macros.
+                int const controllerId = (0xf << (3 - ii));
+                if (pluggedInControllers & controllerId) {
+                    // Check for buttons currently pressed
+                    if(keysDown.c[ii].start) { ButtonPressed[ii][Start_e] = true; }
+                    if(keysDown.c[ii].A) { ButtonPressed[ii][A_e] = true; }
+                    if(keysDown.c[ii].B) { ButtonPressed[ii][B_e] = true; }
+                    if(keysDown.c[ii].C_up) { ButtonPressed[ii][CUp_e] = true; }
+                    if(keysDown.c[ii].C_left) { ButtonPressed[ii][CLeft_e] = true; }
+                    if(keysDown.c[ii].C_right) { ButtonPressed[ii][CRight_e] = true; }
+                    if(keysDown.c[ii].C_down) { ButtonPressed[ii][CDown_e] = true; }
+                    if(keysDown.c[ii].L) { ButtonPressed[ii][LeftShoulder_e] = true; }
+                    if(keysDown.c[ii].R) { ButtonPressed[ii][RightShoulder_e] = true; }
+                    if(keysDown.c[ii].Z) { ButtonPressed[ii][Z_e] = true; }
+                    if(keysDown.c[ii].up) { ButtonPressed[ii][DPadUp_e] = true; }
+                    if(keysDown.c[ii].left) { ButtonPressed[ii][DPadLeft_e] = true; }
+                    if(keysDown.c[ii].right) { ButtonPressed[ii][DPadRight_e] = true; }
+                    if(keysDown.c[ii].down) { ButtonPressed[ii][DPadDown_e] = true; }
+
+                    // Check for every button that's been released. We're not going
+                    // to worry about the case where someone presses and releases a
+                    // button in the same frame.
+                    if(keysUp.c[ii].start && ButtonPressed[ii][Start_e]) {
+                        ButtonReleased[ii][ButtonReleasedBack[ii]++] = Start_e;
+                        ButtonPressed[ii][Start_e] = false;
+                    }
+                    if(keysUp.c[ii].A && ButtonPressed[ii][A_e]) {
+                        ButtonReleased[ii][ButtonReleasedBack[ii]++] = A_e;
+                        ButtonPressed[ii][A_e] = false;
+                    }
+                    if(keysUp.c[ii].B && ButtonPressed[ii][B_e]) {
+                        ButtonReleased[ii][ButtonReleasedBack[ii]++] = B_e;
+                        ButtonPressed[ii][B_e] = false;
+                    }
+                    if(keysUp.c[ii].C_up && ButtonPressed[ii][CUp_e]) {
+                        ButtonReleased[ii][ButtonReleasedBack[ii]++] = CUp_e;
+                        ButtonPressed[ii][CUp_e] = false;
+                    }
+                    if(keysUp.c[ii].C_left && ButtonPressed[ii][CLeft_e]) {
+                        ButtonReleased[ii][ButtonReleasedBack[ii]++] = CLeft_e;
+                        ButtonPressed[ii][CLeft_e] = false;
+                    }
+                    if(keysUp.c[ii].C_right && ButtonPressed[ii][CRight_e]) {
+                        ButtonReleased[ii][ButtonReleasedBack[ii]++] = CRight_e;
+                        ButtonPressed[ii][CRight_e] = false;
+                    }
+                    if(keysUp.c[ii].C_down && ButtonPressed[ii][CDown_e]) {
+                        ButtonReleased[ii][ButtonReleasedBack[ii]++] = CDown_e;
+                        ButtonPressed[ii][CDown_e] = false;
+                    }
+                    if(keysUp.c[ii].L && ButtonPressed[ii][LeftShoulder_e]) {
+                        ButtonReleased[ii][ButtonReleasedBack[ii]++] = LeftShoulder_e;
+                        ButtonPressed[ii][LeftShoulder_e] = false;
+                    }
+                    if(keysUp.c[ii].R && ButtonPressed[ii][RightShoulder_e]) {
+                        ButtonReleased[ii][ButtonReleasedBack[ii]++] = RightShoulder_e;
+                        ButtonPressed[ii][RightShoulder_e] = false;
+                    }
+                    if(keysUp.c[ii].Z && ButtonPressed[ii][Z_e]) {
+                        ButtonReleased[ii][ButtonReleasedBack[ii]++] = Z_e;
+                        ButtonPressed[ii][Z_e] = false;
+                    }
+                    if(keysUp.c[ii].up && ButtonPressed[ii][DPadUp_e]) {
+                        ButtonReleased[ii][ButtonReleasedBack[ii]++] = DPadUp_e;
+                        ButtonPressed[ii][DPadUp_e] = false;
+                    }
+                    if(keysUp.c[ii].left && ButtonPressed[ii][DPadLeft_e]) {
+                        ButtonReleased[ii][ButtonReleasedBack[ii]++] = DPadLeft_e;
+                        ButtonPressed[ii][DPadLeft_e] = false;
+                    }
+                    if(keysUp.c[ii].right && ButtonPressed[ii][DPadRight_e]) {
+                        ButtonReleased[ii][ButtonReleasedBack[ii]++] = DPadRight_e;
+                        ButtonPressed[ii][DPadRight_e] = false;
+                    }
+                    if(keysUp.c[ii].down && ButtonPressed[ii][DPadDown_e]) {
+                        ButtonReleased[ii][ButtonReleasedBack[ii]++] = DPadDown_e;
+                        ButtonPressed[ii][DPadDown_e] = false;
+                    }
+
+                    // Send commands to the graphics system
+                }
+            }
+
+            // Send commands to graphics system
+
+            // Render a frame
+        }
+
+        // Make sure this is the last thing rendered
+        if (lateFrame) {
+            struct RenderAction blank;
+            blank.command = BlankScreen_e;
+            blank.data.blankScreen.color = Red_e;
+            RenderAddAction(&blank);
+
+            lateFrame = false;
+        }
+
+        // Render our frame
+        RenderFinish();
+
+        // Get tick delta since the start of this loop
+        uint32_t const currentTicks = TICKS_READ();
+        uint32_t tickDelta = 0;
+
+        if (TICKS_BEFORE(currentTicks, startTicks)) {
+            // Overflow occurred
+            tickDelta = TICKS_DISTANCE(startTicks, currentTicks + TICKS_PER_SECOND);
+        } else {
+            tickDelta = TICKS_DISTANCE(startTicks, currentTicks);
+        }
+
+        // Sleep until it's time to start work on the next frame
+        uint32_t const remainingFrameTicks = TicksPerFrame - tickDelta;
+        if (remainingFrameTicks > 0) {
+            wait_ticks(remainingFrameTicks);
+        } else {
+            // We're late! Make it obvious we missed our frame and immediately
+            // start on the next frame.
+            lateFrame = true;
+        }
+    }
 
     return 0;
 }

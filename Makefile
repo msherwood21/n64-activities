@@ -5,7 +5,8 @@ BUILD_DIR = build
 SOURCE_DIR = src
 include $(N64_INST)/include/n64.mk
 
-OBJS = $(BUILD_DIR)/main.o
+OBJS = $(BUILD_DIR)/main.o \
+	$(BUILD_DIR)/render.o
 
 oliver.z64: N64_ROM_TITLE = "Oliver"
 
