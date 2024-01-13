@@ -1,4 +1,5 @@
 #include "render.h"
+#include <debug.h>
 #include <graphics.h>
 
 #include <stddef.h>
@@ -8,9 +9,14 @@
 //- Defintions
 //-
 
+//- Conditionally prints debug messages depending on whether or not data has
+//  been LogThisFrame this frame
+static bool LogThisFrame = false;
+#define DEBUG(args...) if(LogThisFrame){debugf(args);}
+
 #define ACTION_QUEUE_MAX_COUNT 16
 
-struct ActionQueue {
+struct RenderQueue {
     unsigned size;
     struct RenderAction queue[ACTION_QUEUE_MAX_COUNT];
 };
@@ -33,7 +39,9 @@ static color_t const ColorLookup[ColorSize_e] = {
 
 static surface_t * display = NULL;
 
-static struct ActionQueue actionQueue;
+static struct RenderQueue actionQueue;
+
+static struct RenderQueue pushQueue;
 
 static unsigned frameTick = 0;
 
@@ -41,26 +49,37 @@ static unsigned frameTick = 0;
 //- Private Functions
 //-
 
-bool ActionQueueAdd(struct RenderAction * action) {
+bool RenderQueueAdd(struct RenderQueue * this, struct RenderAction * action) {
     bool result = false;
 
-    if (actionQueue.size < ACTION_QUEUE_MAX_COUNT) {
+    if (this->size < ACTION_QUEUE_MAX_COUNT) {
         memcpy(
-            &actionQueue.queue[actionQueue.size],
+            &this->queue[this->size],
             action,
             sizeof(struct RenderAction)
         );
-        ++actionQueue.size;
+        ++this->size;
+
+        DEBUG(
+            "RenderQueueAdd: %p added %d (%u)\n",
+            this,
+            action->command,
+            this->size
+        );
 
         result = true;
+    } else {
+        DEBUG("RenderQueueAdd: %p is full\n", this);
     }
 
     return result;
 }
 
-void ActionQueueClear(void) {
-    memset(actionQueue.queue, 0, sizeof(struct RenderAction) * actionQueue.size);
-    actionQueue.size = 0;
+void RenderQueueClear(struct RenderQueue * this) {
+    memset(this->queue, 0, sizeof(struct RenderAction) * this->size);
+    this->size = 0;
+
+    DEBUG("RenderQueueClear: Cleared %p\n", this);
 }
 
 void RenderBlankScreen(struct BlankScreenProperties * properties) {
@@ -70,6 +89,8 @@ void RenderBlankScreen(struct BlankScreenProperties * properties) {
         display,
         graphics_convert_color(ColorLookup[properties->color])
     );
+
+    DEBUG("RenderBlankScreen: %u\n", properties->color);
 }
 
 void RenderText(struct TextProperties * properties) {
@@ -90,6 +111,8 @@ void RenderText(struct TextProperties * properties) {
         properties->y,
         properties->text
     );
+
+    DEBUG("RenderText: %s\n", properties->text);
 }
 
 void RenderRect(struct RectProperties * properties) {
@@ -103,6 +126,8 @@ void RenderRect(struct RectProperties * properties) {
         properties->height,
         graphics_convert_color(ColorLookup[properties->color])
     );
+
+    DEBUG("RenderRect: %u / %u / %u\n", properties->color, properties->topLeftX, properties->topLeftY);
 }
 
 //-
@@ -122,23 +147,57 @@ void RenderInit(void) {
 
     display = NULL;
 
-    ActionQueueClear();
+    RenderQueueClear(&actionQueue);
+    RenderQueueClear(&pushQueue);
+
+    LogThisFrame = true;
+
+    DEBUG("RenderInit: finished\n");
 }
 
 void RenderStart(void) {
-    while(!(display = display_lock()));
-    ++frameTick;
+    if (!display) {
+        while(!(display = display_lock()));
+        ++frameTick;
+    }
+
+    DEBUG("RenderStart: finished\n");
 }
 
 bool RenderAddAction(struct RenderAction * action) {
     static unsigned frameCheck = 0;
+    LogThisFrame = true;
+    bool result = false;
 
     if (frameCheck != frameTick) {
         frameCheck = frameTick;
-        ActionQueueClear();
+        RenderQueueClear(&actionQueue);
     }
 
-    return ActionQueueAdd(action);
+    result = RenderQueueAdd(&actionQueue, action);
+
+    DEBUG(
+        "RenderAddAction: Added 0x%p (%u / %u)\n",
+        action,
+        action->command,
+        actionQueue.size
+    );
+
+    return result;
+}
+
+bool RenderPushAction(struct RenderAction * action) {
+    LogThisFrame = true;
+    bool result = RenderQueueAdd(&pushQueue, action);
+
+    DEBUG(
+        "RenderPushAction: Added 0x%p (%u / %u)\n",
+        action,
+        action->command,
+        pushQueue.size
+    );
+
+    return result;
 }
 
 bool RenderIsBuilding(void) {
@@ -146,24 +205,32 @@ bool RenderIsBuilding(void) {
 }
 
 void RenderFinish(void) {
-    if (display) {
-        for (unsigned ii = 0; ii < actionQueue.size; ++ii) {
-            switch (actionQueue.queue[ii].command) {
-                case BlankScreen_e:
-                    RenderBlankScreen(&actionQueue.queue[ii].data.blankScreen);
-                    break;
-                case DrawText_e:
-                    RenderText(&actionQueue.queue[ii].data.text);
-                    break;
-                case DrawFilledRect_e:
-                    RenderRect(&actionQueue.queue[ii].data.filledRect);
-                    break;
-                default:
-                    break;
-            }
-        }
+    if (!display) { return; }
 
-        display_show(display);
-        display = NULL;
+    struct RenderQueue * queue = pushQueue.size == 0 ? &actionQueue : &pushQueue;
+    DEBUG("RenderFinish: Rendering push? (%u)\n", pushQueue.size != 0);
+
+    for (unsigned ii = 0; ii < queue->size; ++ii) {
+        switch (queue->queue[ii].command) {
+            case BlankScreen_e:
+                RenderBlankScreen(&queue->queue[ii].data.blankScreen);
+                break;
+            case DrawText_e:
+                RenderText(&queue->queue[ii].data.text);
+                break;
+            case DrawFilledRect_e:
+                RenderRect(&queue->queue[ii].data.filledRect);
+                break;
+            default:
+                break;
+        }
     }
+
+    RenderQueueClear(&pushQueue);
+
+    display_show(display);
+    display = NULL;
+
+    DEBUG("RenderFinish: finished\n");
+    LogThisFrame = false;
 }

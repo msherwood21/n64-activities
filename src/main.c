@@ -1,3 +1,5 @@
+#include "clock.h"
+#include <debug.h>
 #include <controller.h>
 #include <libdragon.h>
 #include <n64sys.h>
@@ -137,7 +139,6 @@ void drawAcknowledgement(unsigned secondsToPauseGame) {
 }
 
 int main(void) {
-    uint32_t const TicksPerFrame = TICKS_PER_SECOND / 60;
     bool lateFrame = false;
 
     // Initialize global static data
@@ -147,6 +148,9 @@ int main(void) {
     }
 
     // Initialize subsystems. Never freed.
+    debug_init_isviewer();
+
+    ClockInit(FPS60_e);
     controller_init();
     RenderInit();
     timer_init();
@@ -158,9 +162,7 @@ int main(void) {
 
     // Main loop
     while (true) {
-        // Get start ticks. Ticks for COProcessor 0 happen at half max
-        // instruction rate (46.875 MHz). This will overflow often.
-        uint32_t const startTicks = TICKS_READ();
+        ClockTick const startTick = ClockStartFrame();
 
         // Open us up to render something
         RenderStart();
@@ -261,12 +263,12 @@ int main(void) {
             // Render a frame
         }
 
-        // Make sure this is the last thing rendered
+        //- Make sure this is the last thing rendered
         if (lateFrame) {
             struct RenderAction blank;
             blank.command = BlankScreen_e;
             blank.data.blankScreen.color = Red_e;
-            RenderAddAction(&blank);
+            RenderPushAction(&blank);
 
             lateFrame = false;
         }
@@ -274,20 +276,8 @@ int main(void) {
         // Render our frame
         RenderFinish();
 
-        // Get tick delta since the start of this loop
-        uint32_t const currentTicks = TICKS_READ();
-        uint32_t tickDelta = 0;
-
-        if (TICKS_BEFORE(currentTicks, startTicks)) {
-            // Overflow occurred
-            tickDelta = TICKS_DISTANCE(startTicks, currentTicks + TICKS_PER_SECOND);
-        } else {
-            tickDelta = TICKS_DISTANCE(startTicks, currentTicks);
-        }
-
-        // Sleep until it's time to start work on the next frame
-        uint32_t const remainingFrameTicks = TicksPerFrame - tickDelta;
-        if (remainingFrameTicks > 0) {
+        ClockTick remainingFrameTicks = ClockEndFrame(startTick);
+        if (remainingFrameTicks != ClockOverflow) {
             wait_ticks(remainingFrameTicks);
         } else {
             // We're late! Make it obvious we missed our frame and immediately

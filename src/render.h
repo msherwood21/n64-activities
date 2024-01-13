@@ -71,7 +71,12 @@ void RenderInit(void);
 
 void RenderStart(void);
 
+//- Adds an action to be rendered in perpetuity. This can be called many times,
+//  per frame. If called across frames the current actions are erased.
 bool RenderAddAction(struct RenderAction * action);
+
+//- Pushes a temporary, one frame action to be rendered
+bool RenderPushAction(struct RenderAction * action);
 
 bool RenderIsBuilding(void);
 
