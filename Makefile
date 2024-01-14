@@ -7,6 +7,7 @@ include $(N64_INST)/include/n64.mk
 
 OBJS = $(BUILD_DIR)/clock.o \
 	$(BUILD_DIR)/main.o \
+	$(BUILD_DIR)/peripheral.o \
 	$(BUILD_DIR)/render.o
 
 oliver.z64: N64_ROM_TITLE = "Oliver"
