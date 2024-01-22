@@ -8,6 +8,42 @@
 //- Definitions
 //-
 
+enum ButtonIndex {
+    StartIdx_e = 0,
+    AIdx_e,
+    BIdx_e,
+    CUpIdx_e,
+    CLeftIdx_e,
+    CRightIdx_e,
+    CDownIdx_e,
+    LeftShoulderIdx_e,
+    RightShoulderIdx_e,
+    ZIdx_e,
+    DPadUpIdx_e,
+    DPadLeftIdx_e,
+    DPadRightIdx_e,
+    DPadDownIdx_e,
+    ButtonIdxSize_e
+};
+
+static char const * const ButtonText[ButtonSize_e] = {
+    "Start",
+    "A",
+    "B",
+    "CUp",
+    "CLeft",
+    "CRight",
+    "CDown",
+    "LeftShoulder",
+    "RightShoulder",
+    "Z",
+    "DPadUp",
+    "DPadLeft",
+    "DPadRight",
+    "DPadDown"
+};
+
+
 enum ButtonState {
     Released_e = 0,
     Down_e,
@@ -24,103 +60,156 @@ static enum Button ButtonReleased[ControllerCount][ButtonSize_e];
 static unsigned ButtonReleasedBack[ControllerCount] = { 0, 0, 0, 0 };
 
 //-
+//- Private Functions
+//-
+
+void ResetButtonReleased(enum Controller controller) {
+    memset(ButtonReleased[controller], ButtonSize_e, sizeof(enum Button) * ButtonSize_e);
+    ButtonReleasedBack[controller] = 0;
+}
+
+void ResetAllState(enum Controller controller) {
+    memset(ButtonPressed[controller], false, sizeof(bool) * ButtonSize_e);
+    ResetButtonReleased(controller);
+}
+
+//-
 //- Public Functions
 //-
 
 void PeripheralInit(void) {
-    for (unsigned ii = 0; ii < ControllerCount; ++ii) {
-        memset(ButtonPressed[ii], false, sizeof(bool) * ButtonSize_e);
-        memset(ButtonReleased[ii], ButtonSize_e, sizeof(enum Button) * ButtonSize_e);
+    for (unsigned ii = 0; ii < ControllerSize_e; ++ii) {
+        ResetAllState(ii);
     }
 
     controller_init();
 }
 
 void PeripheralUpdateButtonState(void) {
+    for (unsigned ii = 0; ii < ControllerSize_e; ++ii) {
+        ResetButtonReleased(ii);
+    }
+
     controller_scan();
     int const pluggedInControllers = get_controllers_present();
     struct controller_data const keysDown = get_keys_down();
     struct controller_data const keysUp = get_keys_up();
+
     for (int ii = 0; ii < ControllerCount; ++ii) {
         // 0xf000, 0x0f00, 0x00f0 and 0x000f correspond to controller 1, 2,
         // 3 and 4. See the CONTROLLER_1_INSERTED, etc. macros.
         int const controllerId = (0xf << (3 - ii));
         if (pluggedInControllers & controllerId) {
             // Check for buttons currently pressed
-            if(keysDown.c[ii].start) { ButtonPressed[ii][Start_e] = true; }
-            if(keysDown.c[ii].A) { ButtonPressed[ii][A_e] = true; }
-            if(keysDown.c[ii].B) { ButtonPressed[ii][B_e] = true; }
-            if(keysDown.c[ii].C_up) { ButtonPressed[ii][CUp_e] = true; }
-            if(keysDown.c[ii].C_left) { ButtonPressed[ii][CLeft_e] = true; }
-            if(keysDown.c[ii].C_right) { ButtonPressed[ii][CRight_e] = true; }
-            if(keysDown.c[ii].C_down) { ButtonPressed[ii][CDown_e] = true; }
-            if(keysDown.c[ii].L) { ButtonPressed[ii][LeftShoulder_e] = true; }
-            if(keysDown.c[ii].R) { ButtonPressed[ii][RightShoulder_e] = true; }
-            if(keysDown.c[ii].Z) { ButtonPressed[ii][Z_e] = true; }
-            if(keysDown.c[ii].up) { ButtonPressed[ii][DPadUp_e] = true; }
-            if(keysDown.c[ii].left) { ButtonPressed[ii][DPadLeft_e] = true; }
-            if(keysDown.c[ii].right) { ButtonPressed[ii][DPadRight_e] = true; }
-            if(keysDown.c[ii].down) { ButtonPressed[ii][DPadDown_e] = true; }
+            if(keysDown.c[ii].start) { ButtonPressed[ii][StartIdx_e] = true; }
+            if(keysDown.c[ii].A) { ButtonPressed[ii][AIdx_e] = true; }
+            if(keysDown.c[ii].B) { ButtonPressed[ii][BIdx_e] = true; }
+            if(keysDown.c[ii].C_up) { ButtonPressed[ii][CUpIdx_e] = true; }
+            if(keysDown.c[ii].C_left) { ButtonPressed[ii][CLeftIdx_e] = true; }
+            if(keysDown.c[ii].C_right) { ButtonPressed[ii][CRightIdx_e] = true; }
+            if(keysDown.c[ii].C_down) { ButtonPressed[ii][CDownIdx_e] = true; }
+            if(keysDown.c[ii].L) { ButtonPressed[ii][LeftShoulderIdx_e] = true; }
+            if(keysDown.c[ii].R) { ButtonPressed[ii][RightShoulderIdx_e] = true; }
+            if(keysDown.c[ii].Z) { ButtonPressed[ii][ZIdx_e] = true; }
+            if(keysDown.c[ii].up) { ButtonPressed[ii][DPadUpIdx_e] = true; }
+            if(keysDown.c[ii].left) { ButtonPressed[ii][DPadLeftIdx_e] = true; }
+            if(keysDown.c[ii].right) { ButtonPressed[ii][DPadRightIdx_e] = true; }
+            if(keysDown.c[ii].down) { ButtonPressed[ii][DPadDownIdx_e] = true; }
 
             // Check for every button that's been released. We're not going
             // to worry about the case where someone presses and releases a
             // button in the same frame.
-            if(keysUp.c[ii].start && ButtonPressed[ii][Start_e]) {
+            if(keysUp.c[ii].start && ButtonPressed[ii][StartIdx_e]) {
                 ButtonReleased[ii][ButtonReleasedBack[ii]++] = Start_e;
-                ButtonPressed[ii][Start_e] = false;
+                ButtonPressed[ii][StartIdx_e] = false;
             }
-            if(keysUp.c[ii].A && ButtonPressed[ii][A_e]) {
+            if(keysUp.c[ii].A && ButtonPressed[ii][AIdx_e]) {
                 ButtonReleased[ii][ButtonReleasedBack[ii]++] = A_e;
-                ButtonPressed[ii][A_e] = false;
+                ButtonPressed[ii][AIdx_e] = false;
             }
-            if(keysUp.c[ii].B && ButtonPressed[ii][B_e]) {
+            if(keysUp.c[ii].B && ButtonPressed[ii][BIdx_e]) {
                 ButtonReleased[ii][ButtonReleasedBack[ii]++] = B_e;
-                ButtonPressed[ii][B_e] = false;
+                ButtonPressed[ii][BIdx_e] = false;
             }
-            if(keysUp.c[ii].C_up && ButtonPressed[ii][CUp_e]) {
+            if(keysUp.c[ii].C_up && ButtonPressed[ii][CUpIdx_e]) {
                 ButtonReleased[ii][ButtonReleasedBack[ii]++] = CUp_e;
-                ButtonPressed[ii][CUp_e] = false;
+                ButtonPressed[ii][CUpIdx_e] = false;
             }
-            if(keysUp.c[ii].C_left && ButtonPressed[ii][CLeft_e]) {
+            if(keysUp.c[ii].C_left && ButtonPressed[ii][CLeftIdx_e]) {
                 ButtonReleased[ii][ButtonReleasedBack[ii]++] = CLeft_e;
-                ButtonPressed[ii][CLeft_e] = false;
+                ButtonPressed[ii][CLeftIdx_e] = false;
             }
-            if(keysUp.c[ii].C_right && ButtonPressed[ii][CRight_e]) {
+            if(keysUp.c[ii].C_right && ButtonPressed[ii][CRightIdx_e]) {
                 ButtonReleased[ii][ButtonReleasedBack[ii]++] = CRight_e;
-                ButtonPressed[ii][CRight_e] = false;
+                ButtonPressed[ii][CRightIdx_e] = false;
             }
-            if(keysUp.c[ii].C_down && ButtonPressed[ii][CDown_e]) {
+            if(keysUp.c[ii].C_down && ButtonPressed[ii][CDownIdx_e]) {
                 ButtonReleased[ii][ButtonReleasedBack[ii]++] = CDown_e;
-                ButtonPressed[ii][CDown_e] = false;
+                ButtonPressed[ii][CDownIdx_e] = false;
             }
-            if(keysUp.c[ii].L && ButtonPressed[ii][LeftShoulder_e]) {
+            if(keysUp.c[ii].L && ButtonPressed[ii][LeftShoulderIdx_e]) {
                 ButtonReleased[ii][ButtonReleasedBack[ii]++] = LeftShoulder_e;
-                ButtonPressed[ii][LeftShoulder_e] = false;
+                ButtonPressed[ii][LeftShoulderIdx_e] = false;
             }
-            if(keysUp.c[ii].R && ButtonPressed[ii][RightShoulder_e]) {
+            if(keysUp.c[ii].R && ButtonPressed[ii][RightShoulderIdx_e]) {
                 ButtonReleased[ii][ButtonReleasedBack[ii]++] = RightShoulder_e;
-                ButtonPressed[ii][RightShoulder_e] = false;
+                ButtonPressed[ii][RightShoulderIdx_e] = false;
             }
-            if(keysUp.c[ii].Z && ButtonPressed[ii][Z_e]) {
+            if(keysUp.c[ii].Z && ButtonPressed[ii][ZIdx_e]) {
                 ButtonReleased[ii][ButtonReleasedBack[ii]++] = Z_e;
-                ButtonPressed[ii][Z_e] = false;
+                ButtonPressed[ii][ZIdx_e] = false;
             }
-            if(keysUp.c[ii].up && ButtonPressed[ii][DPadUp_e]) {
+            if(keysUp.c[ii].up && ButtonPressed[ii][DPadUpIdx_e]) {
                 ButtonReleased[ii][ButtonReleasedBack[ii]++] = DPadUp_e;
-                ButtonPressed[ii][DPadUp_e] = false;
+                ButtonPressed[ii][DPadUpIdx_e] = false;
             }
-            if(keysUp.c[ii].left && ButtonPressed[ii][DPadLeft_e]) {
+            if(keysUp.c[ii].left && ButtonPressed[ii][DPadLeftIdx_e]) {
                 ButtonReleased[ii][ButtonReleasedBack[ii]++] = DPadLeft_e;
-                ButtonPressed[ii][DPadLeft_e] = false;
+                ButtonPressed[ii][DPadLeftIdx_e] = false;
             }
-            if(keysUp.c[ii].right && ButtonPressed[ii][DPadRight_e]) {
+            if(keysUp.c[ii].right && ButtonPressed[ii][DPadRightIdx_e]) {
                 ButtonReleased[ii][ButtonReleasedBack[ii]++] = DPadRight_e;
-                ButtonPressed[ii][DPadRight_e] = false;
+                ButtonPressed[ii][DPadRightIdx_e] = false;
             }
-            if(keysUp.c[ii].down && ButtonPressed[ii][DPadDown_e]) {
+            if(keysUp.c[ii].down && ButtonPressed[ii][DPadDownIdx_e]) {
                 ButtonReleased[ii][ButtonReleasedBack[ii]++] = DPadDown_e;
-                ButtonPressed[ii][DPadDown_e] = false;
+                ButtonPressed[ii][DPadDownIdx_e] = false;
             }
         }
+    }
+}
+
+ButtonFlags PeripheralButtonsPressed(enum Controller controller) {
+    ButtonFlags result = 0;
+
+    if (controller < ControllerSize_e) {
+        for (unsigned ii = 0; ii < ButtonReleasedBack[controller]; ++ii) {
+            result |= ButtonReleased[controller][ii];
+        }
+    }
+
+    return result;
+}
+
+inline unsigned PeripheralButtonToIdx(enum Button button) {
+    unsigned result = ButtonSize_e;
+
+    for (unsigned ii = 0; ii < ButtonSize_e; ++ii) {
+        if (button == (0x0001 << ii)) {
+            result = ii;
+            break;
+        }
+    }
+
+    return result;
+}
+
+inline char const * const PeripheralButtonText(enum Button button) {
+    unsigned idx = PeripheralButtonToIdx(button);
+
+    if (idx != ButtonSize_e) {
+        return ButtonText[idx];
+    } else {
+        return NULL;
     }
 }

@@ -130,8 +130,21 @@ int main(void) {
         if (!GameStatePaused && !lateFrame) {
             //- Get controller state
             PeripheralUpdateButtonState();
+            ButtonFlags pressedButtons = PeripheralButtonsPressed(Controller1_e);
 
             //- Send commands to graphics system
+            if (pressedButtons) {
+                debugf(": ");
+
+                for (unsigned ii = 0; ii < ButtonSize_e; ++ii) {
+                    unsigned const button = pressedButtons & (0x0001 << ii);
+                    if (button) {
+                        debugf("%s ", PeripheralButtonText(button));
+                    }
+                }
+
+                debugf("\n");
+            }
         }
 
         //- Make sure this is the last thing rendered
