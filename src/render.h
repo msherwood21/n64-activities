@@ -82,4 +82,8 @@ bool RenderIsBuilding(void);
 
 void RenderFinish(void);
 
+unsigned RenderScreenHeight(void);
+
+unsigned RenderScreenWidth(void);
+
 #endif

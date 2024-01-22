@@ -18,6 +18,28 @@ static bool GameStatePaused = true;
 //- Private Functions
 //-
 
+void DrawDiag(uint32_t frameEstimateMs) {
+    //- Estimate fps
+    double fps = (double)1000 / (double)frameEstimateMs;
+
+    //- Write to char buffer. Add some extra bytes in case we mess up later...
+    //  NOTE: Layout is "FPS: xxx.xxx\0"
+    char fpsStr[24] = { '\0' };
+    memset(fpsStr, 0, sizeof(char) * 24);
+    sprintf(fpsStr, "FPS: %03.3f", fps);
+
+    //- Write to screen
+
+    struct RenderAction text;
+    text.command = DrawText_e;
+    memcpy(text.data.text.text, fpsStr, sizeof(char) * 24);
+    text.data.text.x = RenderScreenWidth() - 100;
+    text.data.text.y = RenderScreenHeight() - 40;
+    text.data.text.textColor = White_e;
+    text.data.text.bgColor = Black_e;
+    RenderPushAction(&text);
+}
+
 void DrawBoard(void) {
     struct RenderAction bg;
     bg.command = BlankScreen_e;
@@ -81,7 +103,7 @@ void ResumeGame(int ovfl) {
     GameStatePaused = false;
 }
 
-void drawAcknowledgement(unsigned secondsToPauseGame) {
+void DrawAcknowledgement(unsigned secondsToPauseGame) {
     // Make sure the game doesn't render over us
     PauseGame();
 
@@ -119,9 +141,12 @@ int main(void) {
     PeripheralInit();
     timer_init();
 
+    struct ClockMarker fpsDiag;
+    ClockMarkerCtor(&fpsDiag);
+
     //- Pre-game loop splash screen
     RenderStart();
-    drawAcknowledgement(5);
+    DrawAcknowledgement(5);
     RenderFinish();
 
     //- Main loop
@@ -150,6 +175,7 @@ int main(void) {
             }
 
             DrawBoard();
+            DrawDiag(ClockMarkMs(&fpsDiag));
         }
 
         //- Make sure this is the last thing rendered
@@ -164,7 +190,7 @@ int main(void) {
 
         RenderFinish();
 
-        ClockTick remainingFrameTicks = ClockEndFrame(startTick);
+        uint32_t remainingFrameTicks = ClockEndFrame(startTick);
         if (remainingFrameTicks != ClockOverflow) {
             wait_ticks(remainingFrameTicks);
         } else {

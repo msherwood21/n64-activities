@@ -5,9 +5,7 @@ as a submodule in meta repositories as needed.
 
 ## TODO
 
-- Add timing statistics
-- Add controller support
-  - Tie re-render to controller update
+- Tie re-render to controller update
 - Add selector movement system
   - Need to keep track of box colors
   - Need to keep track of selector location (tie to box location?)

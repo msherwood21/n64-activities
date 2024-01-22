@@ -234,3 +234,11 @@ void RenderFinish(void) {
     DEBUG("RenderFinish: finished\n");
     LogThisFrame = false;
 }
+
+unsigned RenderScreenHeight(void) {
+    return 240;
+}
+
+unsigned RenderScreenWidth(void) {
+    return 320;
+}

@@ -2,6 +2,8 @@
 #include <debug.h>
 #include <timer.h>
 
+#include <string.h>
+
 //-
 //- Definitions
 //-
@@ -28,6 +30,28 @@ inline ClockTick ClockCurrentTick(void) {
     return TICKS_READ();
 }
 
+inline uint32_t ClockCalculateTickDelta(ClockTick startTick, ClockTick endTick) {
+    ClockTick result = 0;
+
+    if (TICKS_BEFORE(endTick, startTick)) {
+        //- Correct for overflow
+
+        //- We can do this beacuse it's unsigned
+        uint32_t const overflow = endTick;
+        uint32_t const temp = 0xffffffff - startTick;
+
+        result = temp + overflow + 1;
+    } else {
+        result = TICKS_DISTANCE(startTick, endTick);
+    }
+
+    return result;
+}
+
+inline uint32_t ClockTicksToMs(uint32_t ticks) {
+    return TIMER_MICROS_LL(ticks) / 1000;
+}
+
 //-
 //- Public Functions
 //-
@@ -40,41 +64,53 @@ void ClockInit(enum ClockFrameDuration duration) {
     DurationSelection = duration;
 }
 
-ClockTick ClockStartFrame() {
+ClockTick ClockStartFrame(void) {
     return ClockCurrentTick();
 }
 
-ClockTick ClockEndFrame(ClockTick frameStart) {
-    ClockTick result = 0;
+uint32_t ClockEndFrame(ClockTick frameStart) {
+    uint32_t result = ClockCalculateTickDelta(frameStart, ClockCurrentTick());
 
-    ClockTick const currentTick = ClockCurrentTick();
-    uint32_t frameTicks = 0;
-    if (TICKS_BEFORE(currentTick, frameStart)) {
-        //- Correct for overflow
-
-        //- We can do this beacuse it's unsigned
-        uint32_t const overflow = currentTick;
-        uint32_t const temp = 0xffffffff - frameStart;
-
-        frameTicks = temp + overflow + 1;
-    } else {
-        frameTicks = TICKS_DISTANCE(frameStart, currentTick);
-    }
-
-    int32_t const frameDelta = DurationTicks[DurationSelection] - frameTicks;
+    int32_t const frameDelta = DurationTicks[DurationSelection] - result;
     if (frameDelta < 0) {
         debugf(
-            "ClockEndFrame: frameTicks %lu / frameDelta %ld (%lu / %lu)\n",
-            frameTicks,
+            "ClockEndFrame: frameTicks %lu / frameDelta %ld / frameStart %lu\n",
+            result,
             frameDelta,
-            frameStart,
-            currentTick
+            frameStart
         );
 
         // We overflowed which signals we missed our frame
         result = ClockOverflow;
     } else {
         result = (uint32_t)frameDelta;
+    }
+
+    return result;
+}
+
+void ClockMarkerCtor(struct ClockMarker * marker) {
+    if (marker != NULL) {
+        marker->lastTick = ClockCurrentTick();
+    }
+}
+
+uint32_t ClockMark(struct ClockMarker * marker) {
+    uint32_t result = ClockOverflow;
+
+    if (marker != NULL) {
+        result = ClockCalculateTickDelta(marker->lastTick, ClockCurrentTick());
+        marker->lastTick = ClockCurrentTick();
+    }
+
+    return result;
+}
+
+uint32_t ClockMarkMs(struct ClockMarker * marker) {
+    uint32_t result = ClockMark(marker);
+
+    if (result != ClockOverflow) {
+        result = ClockTicksToMs(result);
     }
 
     return result;
