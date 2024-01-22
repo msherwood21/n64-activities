@@ -18,13 +18,11 @@ static bool GameStatePaused = true;
 //- Private Functions
 //-
 
-void resetBoard(int ovfl) {
-    if (!RenderIsBuilding()) { RenderStart(); }
-
+void DrawBoard(void) {
     struct RenderAction bg;
     bg.command = BlankScreen_e;
     bg.data.blankScreen.color = Black_e;
-    RenderAddAction(&bg);
+    RenderPushAction(&bg);
 
     //- Draw selector
 
@@ -35,7 +33,7 @@ void resetBoard(int ovfl) {
     rect.data.filledRect.width = 50;
     rect.data.filledRect.height = 40;
     rect.data.filledRect.color = White_e;
-    RenderAddAction(&rect);
+    RenderPushAction(&rect);
 
     //- Draw squares
 
@@ -44,43 +42,48 @@ void resetBoard(int ovfl) {
     rect.data.filledRect.width = 40;
     rect.data.filledRect.height = 30;
     rect.data.filledRect.color = Red_e;
-    RenderAddAction(&rect);
+    RenderPushAction(&rect);
 
     rect.data.filledRect.topLeftX = 65;
     rect.data.filledRect.topLeftY = 10;
     rect.data.filledRect.width = 40;
     rect.data.filledRect.height = 30;
     rect.data.filledRect.color = Green_e;
-    RenderAddAction(&rect);
+    RenderPushAction(&rect);
 
     rect.data.filledRect.topLeftX = 115;
     rect.data.filledRect.topLeftY = 10;
     rect.data.filledRect.width = 40;
     rect.data.filledRect.height = 30;
     rect.data.filledRect.color = Blue_e;
-    RenderAddAction(&rect);
+    RenderPushAction(&rect);
 
     rect.data.filledRect.topLeftX = 165;
     rect.data.filledRect.topLeftY = 10;
     rect.data.filledRect.width = 40;
     rect.data.filledRect.height = 30;
     rect.data.filledRect.color = Yellow_e;
-    RenderAddAction(&rect);
+    RenderPushAction(&rect);
 
     rect.data.filledRect.topLeftX = 215;
     rect.data.filledRect.topLeftY = 10;
     rect.data.filledRect.width = 40;
     rect.data.filledRect.height = 30;
     rect.data.filledRect.color = Grey_e;
-    RenderAddAction(&rect);
+    RenderPushAction(&rect);
+}
 
-    // Make sure we're actually rendering the game
+void PauseGame(void) {
+    GameStatePaused = true;
+}
+
+void ResumeGame(int ovfl) {
     GameStatePaused = false;
 }
 
 void drawAcknowledgement(unsigned secondsToPauseGame) {
     // Make sure the game doesn't render over us
-    GameStatePaused = true;
+    PauseGame();
 
     if (!RenderIsBuilding()) { RenderStart(); }
 
@@ -101,7 +104,7 @@ void drawAcknowledgement(unsigned secondsToPauseGame) {
     new_timer(
         TICKS_PER_SECOND * secondsToPauseGame,
         TF_ONE_SHOT,
-        resetBoard
+        ResumeGame
     );
 }
 
@@ -145,6 +148,8 @@ int main(void) {
 
                 debugf("\n");
             }
+
+            DrawBoard();
         }
 
         //- Make sure this is the last thing rendered
