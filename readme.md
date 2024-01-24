@@ -5,7 +5,6 @@ as a submodule in meta repositories as needed.
 
 ## TODO
 
-- Tie re-render to controller update
 - Add selector movement system
   - Need to keep track of box colors
   - Need to keep track of selector location (tie to box location?)

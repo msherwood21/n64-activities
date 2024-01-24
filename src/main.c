@@ -18,6 +18,18 @@ static bool GameStatePaused = true;
 //- Private Functions
 //-
 
+void DrawButtons(char * text) {
+    struct RenderAction renderText;
+    renderText.command = DrawText_e;
+    strcpy(renderText.data.text.text, text);
+    renderText.data.text.x = 10;
+    renderText.data.text.y = RenderScreenHeight() - 55;
+    renderText.data.text.textColor = White_e;
+    renderText.data.text.bgColor = Black_e;
+
+    RenderPushAction(&renderText);
+}
+
 void DrawDiag(uint32_t frameEstimateMs) {
     //- Estimate fps
     double fps = (double)1000 / (double)frameEstimateMs;
@@ -33,7 +45,7 @@ void DrawDiag(uint32_t frameEstimateMs) {
     struct RenderAction text;
     text.command = DrawText_e;
     memcpy(text.data.text.text, fpsStr, sizeof(char) * 24);
-    text.data.text.x = RenderScreenWidth() - 100;
+    text.data.text.x = 10;
     text.data.text.y = RenderScreenHeight() - 40;
     text.data.text.textColor = White_e;
     text.data.text.bgColor = Black_e;
@@ -146,8 +158,10 @@ int main(void) {
 
     //- Pre-game loop splash screen
     RenderStart();
-    DrawAcknowledgement(5);
+    DrawAcknowledgement(1);
     RenderFinish();
+
+    char buttonString[2048] = { 'B', 'u', 't', 't', 'o', 'n', 's', ':', ' ', 0 };
 
     //- Main loop
     while (true) {
@@ -156,25 +170,29 @@ int main(void) {
         RenderStart();
 
         if (!GameStatePaused && !lateFrame) {
+            DrawBoard();
+
             //- Get controller state
             PeripheralUpdateButtonState();
             ButtonFlags pressedButtons = PeripheralButtonsPressed(Controller1_e);
 
             //- Send commands to graphics system
             if (pressedButtons) {
-                debugf(": ");
+                char * stringPos = buttonString + 9; // "Buttons: "
+                memset(stringPos, 0, sizeof(char) * strlen(buttonString));
 
                 for (unsigned ii = 0; ii < ButtonSize_e; ++ii) {
                     unsigned const button = pressedButtons & (0x0001 << ii);
                     if (button) {
-                        debugf("%s ", PeripheralButtonText(button));
+                        char const * const currentButton = PeripheralButtonText(button);
+
+                        sprintf(stringPos, "%s ", currentButton);
+                        stringPos += strlen(currentButton) + 1;
                     }
                 }
-
-                debugf("\n");
             }
 
-            DrawBoard();
+            DrawButtons(buttonString);
             DrawDiag(ClockMarkMs(&fpsDiag));
         }
 
