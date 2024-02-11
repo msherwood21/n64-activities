@@ -11,10 +11,10 @@
 
 //- Conditionally prints debug messages depending on whether or not data has
 //  been LogThisFrame this frame
-static bool LogThisFrame = false;
-#define DEBUG(args...) if(LogThisFrame){debugf(args);}
+// static bool LogThisFrame = false;
+// #define DEBUG(args...) if(LogThisFrame){debugf(args);}
 
-#define ACTION_QUEUE_MAX_COUNT 16
+#define ACTION_QUEUE_MAX_COUNT 32
 
 struct RenderQueue {
     unsigned size;
@@ -45,6 +45,8 @@ static struct RenderQueue pushQueue;
 
 static unsigned frameTick = 0;
 
+static bool initialized = false;
+
 //-
 //- Private Functions
 //-
@@ -60,16 +62,16 @@ bool RenderQueueAdd(struct RenderQueue * this, struct RenderAction * action) {
         );
         ++this->size;
 
-        DEBUG(
-            "RenderQueueAdd: %p added %d (%u)\n",
-            this,
-            action->command,
-            this->size
-        );
+        // DEBUG(
+            // "RenderQueueAdd: %p added %d (%u)\n",
+            // this,
+            // action->command,
+            // this->size
+        // );
 
         result = true;
     } else {
-        DEBUG("RenderQueueAdd: %p is full\n", this);
+        // DEBUG("RenderQueueAdd: %p is full\n", this);
     }
 
     return result;
@@ -79,7 +81,7 @@ void RenderQueueClear(struct RenderQueue * this) {
     memset(this->queue, 0, sizeof(struct RenderAction) * this->size);
     this->size = 0;
 
-    DEBUG("RenderQueueClear: Cleared %p\n", this);
+    // DEBUG("RenderQueueClear: Cleared %p\n", this);
 }
 
 void RenderBlankScreen(struct BlankScreenProperties * properties) {
@@ -90,7 +92,7 @@ void RenderBlankScreen(struct BlankScreenProperties * properties) {
         graphics_convert_color(ColorLookup[properties->color])
     );
 
-    DEBUG("RenderBlankScreen: %u\n", properties->color);
+    // DEBUG("RenderBlankScreen: %u\n", properties->color);
 }
 
 void RenderText(struct TextProperties * properties) {
@@ -112,7 +114,7 @@ void RenderText(struct TextProperties * properties) {
         properties->text
     );
 
-    DEBUG("RenderText: %s\n", properties->text);
+    // DEBUG("RenderText: %s\n", properties->text);
 }
 
 void RenderRect(struct RectProperties * properties) {
@@ -127,7 +129,7 @@ void RenderRect(struct RectProperties * properties) {
         graphics_convert_color(ColorLookup[properties->color])
     );
 
-    DEBUG("RenderRect: %u / %u / %u\n", properties->color, properties->topLeftX, properties->topLeftY);
+    // DEBUG("RenderRect: %u / %u / %u\n", properties->color, properties->topLeftX, properties->topLeftY);
 }
 
 //-
@@ -135,6 +137,10 @@ void RenderRect(struct RectProperties * properties) {
 //-
 
 void RenderInit(void) {
+    if (initialized) {
+        return;
+    }
+
     static uint32_t const BufferCount = 2;
 
     display_init(
@@ -150,9 +156,9 @@ void RenderInit(void) {
     RenderQueueClear(&actionQueue);
     RenderQueueClear(&pushQueue);
 
-    LogThisFrame = true;
+    // LogThisFrame = true;
 
-    DEBUG("RenderInit: finished\n");
+    // DEBUG("RenderInit: finished\n");
 }
 
 void RenderStart(void) {
@@ -161,12 +167,12 @@ void RenderStart(void) {
         ++frameTick;
     }
 
-    DEBUG("RenderStart: finished\n");
+    // DEBUG("RenderStart: finished\n");
 }
 
 bool RenderAddAction(struct RenderAction * action) {
     static unsigned frameCheck = 0;
-    LogThisFrame = true;
+    // LogThisFrame = true;
     bool result = false;
 
     if (frameCheck != frameTick) {
@@ -176,26 +182,26 @@ bool RenderAddAction(struct RenderAction * action) {
 
     result = RenderQueueAdd(&actionQueue, action);
 
-    DEBUG(
-        "RenderAddAction: Added 0x%p (%u / %u)\n",
-        action,
-        action->command,
-        actionQueue.size
-    );
+    // DEBUG(
+        // "RenderAddAction: Added 0x%p (%u / %u)\n",
+        // action,
+        // action->command,
+        // actionQueue.size
+    // );
 
     return result;
 }
 
 bool RenderPushAction(struct RenderAction * action) {
-    LogThisFrame = true;
+    // LogThisFrame = true;
     bool result = RenderQueueAdd(&pushQueue, action);
 
-    DEBUG(
-        "RenderPushAction: Added 0x%p (%u / %u)\n",
-        action,
-        action->command,
-        pushQueue.size
-    );
+    // DEBUG(
+        // "RenderPushAction: Added 0x%p (%u / %u)\n",
+        // action,
+        // action->command,
+        // pushQueue.size
+    // );
 
     return result;
 }
@@ -208,7 +214,7 @@ void RenderFinish(void) {
     if (!display) { return; }
 
     struct RenderQueue * queue = pushQueue.size == 0 ? &actionQueue : &pushQueue;
-    DEBUG("RenderFinish: Rendering push? (%u)\n", pushQueue.size != 0);
+    // DEBUG("RenderFinish: Rendering push? (%u)\n", pushQueue.size != 0);
 
     for (unsigned ii = 0; ii < queue->size; ++ii) {
         switch (queue->queue[ii].command) {
@@ -231,8 +237,8 @@ void RenderFinish(void) {
     display_show(display);
     display = NULL;
 
-    DEBUG("RenderFinish: finished\n");
-    LogThisFrame = false;
+    // DEBUG("RenderFinish: finished\n");
+    // LogThisFrame = false;
 }
 
 unsigned RenderScreenHeight(void) {

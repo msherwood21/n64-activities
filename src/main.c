@@ -1,7 +1,9 @@
+#include "action.h"
 #include "clock.h"
 #include <debug.h>
 #include <libdragon.h>
 #include <n64sys.h>
+#include "object.h"
 #include "peripheral.h"
 #include "render.h"
 #include <timer.h>
@@ -27,7 +29,7 @@ void DrawButtons(char * text) {
     renderText.data.text.textColor = White_e;
     renderText.data.text.bgColor = Black_e;
 
-    RenderPushAction(&renderText);
+    RenderAddAction(&renderText);
 }
 
 void DrawDiag(uint32_t frameEstimateMs) {
@@ -50,61 +52,6 @@ void DrawDiag(uint32_t frameEstimateMs) {
     text.data.text.textColor = White_e;
     text.data.text.bgColor = Black_e;
     RenderPushAction(&text);
-}
-
-void DrawBoard(void) {
-    struct RenderAction bg;
-    bg.command = BlankScreen_e;
-    bg.data.blankScreen.color = Black_e;
-    RenderPushAction(&bg);
-
-    //- Draw selector
-
-    struct RenderAction rect;
-    rect.command = DrawFilledRect_e;
-    rect.data.filledRect.topLeftX = 10;
-    rect.data.filledRect.topLeftY = 5;
-    rect.data.filledRect.width = 50;
-    rect.data.filledRect.height = 40;
-    rect.data.filledRect.color = White_e;
-    RenderPushAction(&rect);
-
-    //- Draw squares
-
-    rect.data.filledRect.topLeftX = 15;
-    rect.data.filledRect.topLeftY = 10;
-    rect.data.filledRect.width = 40;
-    rect.data.filledRect.height = 30;
-    rect.data.filledRect.color = Red_e;
-    RenderPushAction(&rect);
-
-    rect.data.filledRect.topLeftX = 65;
-    rect.data.filledRect.topLeftY = 10;
-    rect.data.filledRect.width = 40;
-    rect.data.filledRect.height = 30;
-    rect.data.filledRect.color = Green_e;
-    RenderPushAction(&rect);
-
-    rect.data.filledRect.topLeftX = 115;
-    rect.data.filledRect.topLeftY = 10;
-    rect.data.filledRect.width = 40;
-    rect.data.filledRect.height = 30;
-    rect.data.filledRect.color = Blue_e;
-    RenderPushAction(&rect);
-
-    rect.data.filledRect.topLeftX = 165;
-    rect.data.filledRect.topLeftY = 10;
-    rect.data.filledRect.width = 40;
-    rect.data.filledRect.height = 30;
-    rect.data.filledRect.color = Yellow_e;
-    RenderPushAction(&rect);
-
-    rect.data.filledRect.topLeftX = 215;
-    rect.data.filledRect.topLeftY = 10;
-    rect.data.filledRect.width = 40;
-    rect.data.filledRect.height = 30;
-    rect.data.filledRect.color = Grey_e;
-    RenderPushAction(&rect);
 }
 
 void PauseGame(void) {
@@ -143,14 +90,13 @@ void DrawAcknowledgement(unsigned secondsToPauseGame) {
 }
 
 int main(void) {
-    bool lateFrame = false;
-
     //- Initialize subsystems. Never freed.
     debug_init_isviewer();
 
     ClockInit(FPS60_e);
-    RenderInit();
+    ObjectInit();
     PeripheralInit();
+    RenderInit();
     timer_init();
 
     struct ClockMarker fpsDiag;
@@ -161,7 +107,7 @@ int main(void) {
     DrawAcknowledgement(1);
     RenderFinish();
 
-    char buttonString[2048] = { 'B', 'u', 't', 't', 'o', 'n', 's', ':', ' ', 0 };
+    // char buttonString[2048] = { 'B', 'u', 't', 't', 'o', 'n', 's', ':', ' ', 0 };
 
     //- Main loop
     while (true) {
@@ -169,42 +115,53 @@ int main(void) {
 
         RenderStart();
 
-        if (!GameStatePaused && !lateFrame) {
-            DrawBoard();
+        if (!GameStatePaused) {
+            // Draw background
+            struct RenderAction bg;
+            bg.command = BlankScreen_e;
+            bg.data.blankScreen.color = Black_e;
+            RenderAddAction(&bg);
 
             //- Get controller state
             PeripheralUpdateButtonState();
             ButtonFlags pressedButtons = PeripheralButtonsPressed(Controller1_e);
 
-            //- Send commands to graphics system
+            //- Send commands to objects
             if (pressedButtons) {
-                char * stringPos = buttonString + 9; // "Buttons: "
-                memset(stringPos, 0, sizeof(char) * strlen(buttonString));
+                // "Buttons: "
+                // char * stringPos = buttonString + 9;
+                // memset(stringPos, 0, sizeof(char) * strlen(buttonString));
 
                 for (unsigned ii = 0; ii < ButtonSize_e; ++ii) {
                     unsigned const button = pressedButtons & (0x0001 << ii);
                     if (button) {
-                        char const * const currentButton = PeripheralButtonText(button);
+                        // char const * const currentButton = PeripheralButtonText(button);
 
-                        sprintf(stringPos, "%s ", currentButton);
-                        stringPos += strlen(currentButton) + 1;
+                        // sprintf(stringPos, "%s ", currentButton);
+                        // stringPos += strlen(currentButton) + 1;
+
+                        struct Action action;
+                        ActionTranslate(button, &action);
+                        ObjectUpdate(Controller1_e, &action);
                     }
                 }
             }
 
-            DrawButtons(buttonString);
-            DrawDiag(ClockMarkMs(&fpsDiag));
+            // Render the world
+            ObjectRender();
+            // DrawButtons(buttonString);
+            // DrawDiag(ClockMarkMs(&fpsDiag));
         }
 
         //- Make sure this is the last thing rendered
-        if (lateFrame) {
-            struct RenderAction blank;
-            blank.command = BlankScreen_e;
-            blank.data.blankScreen.color = Red_e;
-            RenderPushAction(&blank);
+        // if (lateFrame) {
+        //     struct RenderAction blank;
+        //     blank.command = BlankScreen_e;
+        //     blank.data.blankScreen.color = Red_e;
+        //     RenderPushAction(&blank);
 
-            lateFrame = false;
-        }
+        //     lateFrame = false;
+        // }
 
         RenderFinish();
 
@@ -212,9 +169,7 @@ int main(void) {
         if (remainingFrameTicks != ClockOverflow) {
             wait_ticks(remainingFrameTicks);
         } else {
-            //- We're late! Make it obvious we missed our frame and immediately
-            //  start on the next frame.
-            lateFrame = true;
+            //- We're late! Immediately start on the next frame.
         }
     }
 

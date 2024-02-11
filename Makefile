@@ -5,8 +5,11 @@ BUILD_DIR = build
 SOURCE_DIR = src
 include $(N64_INST)/include/n64.mk
 
-OBJS = $(BUILD_DIR)/clock.o \
+OBJS = $(BUILD_DIR)/action.o \
+	$(BUILD_DIR)/clock.o \
 	$(BUILD_DIR)/main.o \
+	$(BUILD_DIR)/object.o \
+	$(BUILD_DIR)/objectLayout.o \
 	$(BUILD_DIR)/peripheral.o \
 	$(BUILD_DIR)/render.o
 
