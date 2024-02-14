@@ -36,7 +36,7 @@ static bool Initialized = false;
 void LogInit(void) {
     if (Initialized) { return; }
 
-    if (!debug_init(LOG_SRC)) {
+    if (!debug_init(LOG_SRC) && (LOG_SRC != 0)) {
         //- Unrecoverable error. Abort.
         exit(1);
     }
@@ -49,12 +49,12 @@ void Log(char * const msg, ...) {
         //- Get function name
         //- NOTE: backtrace doesn't want to do less than three frames for some
         //      reason
-        void * caller[3] = { NULL, NULL, NULL };
+        void * caller[2] = { NULL, NULL };
         char ** symbol;
         unsigned symbolSize = 0;
 
-        int btSize = backtrace(caller, 3);
-        if (btSize == 3) {
+        int btSize = backtrace(caller, 2);
+        if (btSize == 2) {
             symbol = backtrace_symbols(caller, btSize);
             if (symbol != NULL) {
                 symbolSize += strlen(symbol[1]);
