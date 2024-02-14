@@ -26,6 +26,18 @@ enum ButtonIndex {
     ButtonIdxSize_e
 };
 
+enum ButtonState {
+    Released_e = 0,
+    Down_e,
+    Pressed_e
+};
+
+//-
+//- Static Data
+//-
+
+static bool Initialized = false;
+
 static char const * const ButtonText[ButtonSize_e] = {
     "Start",
     "A",
@@ -42,17 +54,6 @@ static char const * const ButtonText[ButtonSize_e] = {
     "DPadRight",
     "DPadDown"
 };
-
-
-enum ButtonState {
-    Released_e = 0,
-    Down_e,
-    Pressed_e
-};
-
-//-
-//- Static Data
-//-
 
 #define ControllerCount 4
 static bool ButtonPressed[ControllerCount][ButtonSize_e];
@@ -78,11 +79,15 @@ void ResetAllState(enum Controller controller) {
 //-
 
 void PeripheralInit(void) {
+    if (Initialized) { return; }
+
     for (unsigned ii = 0; ii < ControllerSize_e; ++ii) {
         ResetAllState(ii);
     }
 
     controller_init();
+
+    Initialized = true;
 }
 
 void PeripheralUpdateButtonState(void) {

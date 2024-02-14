@@ -22,6 +22,8 @@ struct ObjectState {
 //- Static data
 //-
 
+static bool Initialized = false;
+
 static struct ObjectState Objects[ObjectCount];
 
 //-
@@ -91,6 +93,8 @@ void ObjectMove(unsigned objIdx, enum ActionDirection direction) {
 //-
 
 void ObjectInit(void) {
+    if (Initialized) { return; }
+
     //- Setup dependencies
     ObjectLayoutInit();
 
@@ -117,6 +121,8 @@ void ObjectInit(void) {
         colIdx = jj % ObjectColumnMax;
         rowIdx = jj / ObjectColumnMax;
     }
+
+    Initialized = true;
 }
 
 void ObjectRender(void) {

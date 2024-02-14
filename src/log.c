@@ -34,14 +34,14 @@ static bool Initialized = false;
 //-
 
 void LogInit(void) {
-    if (!Initialized) {
-        if (!debug_init(LOG_SRC)) {
-            //- Unrecoverable error. Abort.
-            exit(1);
-        }
+    if (Initialized) { return; }
 
-        Initialized = true;
+    if (!debug_init(LOG_SRC)) {
+        //- Unrecoverable error. Abort.
+        exit(1);
     }
+
+    Initialized = true;
 }
 
 void Log(char * const msg, ...) {

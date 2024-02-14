@@ -12,6 +12,8 @@
 //- Static Data
 //-
 
+static bool Initialized = false;
+
 //- Precomputed durations of the form TICKS_PER_SECOND / x
 static uint32_t const DurationTicks[ClockFrameDurationSize_e] = {
     1562500, // (93750000 / 2) / 30
@@ -57,11 +59,14 @@ inline uint32_t ClockTicksToMs(uint32_t ticks) {
 //-
 
 void ClockInit(enum ClockFrameDuration duration) {
+    if (Initialized) { return; }
+
     if (duration >= ClockFrameDurationSize_e) {
         duration = FPS60_e;
     }
 
     DurationSelection = duration;
+    Initialized = true;
 }
 
 ClockTick ClockStartFrame(void) {

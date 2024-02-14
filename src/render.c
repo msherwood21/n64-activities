@@ -26,6 +26,8 @@ struct RenderQueue {
 //- Static Data
 //-
 
+static bool Initialized = false;
+
 //- This initialization is directly tied to the layout of the Color enum. If it
 //  changes, then this must too.
 static color_t const ColorLookup[ColorSize_e] = {
@@ -45,8 +47,6 @@ static struct RenderQueue actionQueue;
 static struct RenderQueue pushQueue;
 
 static unsigned frameTick = 0;
-
-static bool initialized = false;
 
 //-
 //- Private Functions
@@ -138,9 +138,7 @@ void RenderRect(struct RectProperties * properties) {
 //-
 
 void RenderInit(void) {
-    if (initialized) {
-        return;
-    }
+    if (Initialized) { return; }
 
     static uint32_t const BufferCount = 2;
 
@@ -160,6 +158,8 @@ void RenderInit(void) {
     // LogThisFrame = true;
 
     // DEBUG("RenderInit: finished\n");
+
+    Initialized = true;
 }
 
 void RenderStart(void) {

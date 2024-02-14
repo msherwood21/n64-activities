@@ -21,6 +21,8 @@ struct LayoutProps {
 //- Static data
 //-
 
+static bool Initialized = false;
+
 static struct RenderAction RenderCommands[ObjectCount];
 static struct LayoutProps Layout;
 
@@ -33,6 +35,8 @@ static struct LayoutProps Layout;
 //-
 
 void ObjectLayoutInit(void) {
+    if (Initialized) { return; }
+
     //- Setup dependencies
     RenderInit();
 
@@ -76,6 +80,8 @@ void ObjectLayoutInit(void) {
         colIdx = jj % ObjectColumnMax;
         rowIdx = jj / ObjectColumnMax;
     }
+
+    Initialized = true;
 }
 
 void ObjectLayoutMove(unsigned index, unsigned row, unsigned column) {
