@@ -1,14 +1,13 @@
 #include "action.h"
 #include "clock.h"
-#include <libdragon.h>
 #include "log.h"
-#include <n64sys.h>
 #include "object.h"
 #include "peripheral.h"
 #include "render.h"
 #include <timer.h>
 
 #include <string.h>
+#include <stdio.h>
 
 //-
 //- Static Data
@@ -20,10 +19,28 @@ static bool GameStatePaused = true;
 //- Private Functions
 //-
 
-void DrawButtons(char * text) {
+void DrawButtons(ButtonFlags buttons) {
+    static char buttonString[2048] = { 'B', 'u', 't', 't', 'o', 'n', 's', ':', ' ', 0 };
+    char * stringPos = buttonString + 9;
+
+    if (!buttons) {
+        *stringPos = '\0';
+    } else {
+        for (unsigned ii = 0; ii < ButtonSize_e; ++ii) {
+            unsigned const button = buttons & (0x0001 << ii);
+            if (button) {
+                char const * const currentButton = PeripheralButtonText(button);
+
+                sprintf(stringPos, "%s ", currentButton);
+                stringPos += strlen(currentButton) + 2; // null terminator + space
+                *stringPos = '\0';
+            }
+        }
+    }
+
     struct RenderAction renderText;
     renderText.command = DrawText_e;
-    strcpy(renderText.data.text.text, text);
+    strcpy(renderText.data.text.text, buttonString);
     renderText.data.text.x = 10;
     renderText.data.text.y = RenderScreenHeight() - 55;
     renderText.data.text.textColor = White_e;
@@ -59,6 +76,7 @@ void PauseGame(void) {
 }
 
 void ResumeGame(int ovfl) {
+    Log("timer fired\n");
     GameStatePaused = false;
 }
 
@@ -87,6 +105,8 @@ void DrawAcknowledgement(unsigned secondsToPauseGame) {
         TF_ONE_SHOT,
         ResumeGame
     );
+
+    Log("timer started\n");
 }
 
 int main(void) {
@@ -102,14 +122,15 @@ int main(void) {
     struct ClockMarker fpsDiag;
     ClockMarkerCtor(&fpsDiag);
 
+    Log("initialized\n");
+
     //- Pre-game loop splash screen
     RenderStart();
     DrawAcknowledgement(1);
     RenderFinish();
 
-    // char buttonString[2048] = { 'B', 'u', 't', 't', 'o', 'n', 's', ':', ' ', 0 };
-
     //- Main loop
+    ButtonFlags lastButtons = 0;
     while (true) {
         ClockTick const startTick = ClockStartFrame();
 
@@ -128,40 +149,23 @@ int main(void) {
 
             //- Send commands to objects
             if (pressedButtons) {
-                // "Buttons: "
-                // char * stringPos = buttonString + 9;
-                // memset(stringPos, 0, sizeof(char) * strlen(buttonString));
-
                 for (unsigned ii = 0; ii < ButtonSize_e; ++ii) {
                     unsigned const button = pressedButtons & (0x0001 << ii);
                     if (button) {
-                        // char const * const currentButton = PeripheralButtonText(button);
-
-                        // sprintf(stringPos, "%s ", currentButton);
-                        // stringPos += strlen(currentButton) + 1;
-
                         struct Action action;
                         ActionTranslate(button, &action);
                         ObjectUpdate(Controller1_e, &action);
                     }
                 }
+
+                lastButtons = pressedButtons;
             }
 
             // Render the world
             ObjectRender();
-            // DrawButtons(buttonString);
+            // DrawButtons(lastButtons);
             // DrawDiag(ClockMarkMs(&fpsDiag));
         }
-
-        //- Make sure this is the last thing rendered
-        // if (lateFrame) {
-        //     struct RenderAction blank;
-        //     blank.command = BlankScreen_e;
-        //     blank.data.blankScreen.color = Red_e;
-        //     RenderPushAction(&blank);
-
-        //     lateFrame = false;
-        // }
 
         RenderFinish();
 
