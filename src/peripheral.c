@@ -1,4 +1,5 @@
 #include "peripheral.h"
+#include "log.h"
 #include <controller.h>
 
 #include <string.h>
@@ -191,6 +192,8 @@ ButtonFlags PeripheralButtonsPressed(enum Controller controller) {
         for (unsigned ii = 0; ii < ButtonReleasedBack[controller]; ++ii) {
             result |= ButtonReleased[controller][ii];
         }
+    } else {
+        Log("invalid controller %u\n", controller);
     }
 
     return result;
@@ -204,6 +207,10 @@ inline unsigned PeripheralButtonToIdx(enum Button button) {
             result = ii;
             break;
         }
+    }
+
+    if (result == ButtonSize_e) {
+        Log("invalid button %u\n", button);
     }
 
     return result;

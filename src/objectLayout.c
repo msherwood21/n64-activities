@@ -1,4 +1,5 @@
 #include "objectLayout.h"
+#include "log.h"
 #include "object.h"
 
 //-
@@ -113,7 +114,10 @@ void ObjectLayoutMove(unsigned index, unsigned row, unsigned column) {
 }
 
 void ObjectLayoutRender(unsigned index, enum Color color) {
-    if (index >= ObjectCount) { return; }
+    if (index >= ObjectCount) {
+        Log("invalid condition %u\n", index);
+        return;
+    }
 
     RenderCommands[index].data.filledRect.color = color;
     RenderAddAction(&RenderCommands[index]);

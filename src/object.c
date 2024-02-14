@@ -1,5 +1,5 @@
 #include "object.h"
-// #include "debug.h"
+#include "log.h"
 #include "objectLayout.h"
 #include "render.h"
 #include <stddef.h>
@@ -34,6 +34,7 @@ unsigned ObjectControllerToSelector(enum Controller controller) {
     unsigned result = controller;
 
     if (controller >= ObjectSelectorCount) {
+        Log("invalid controller %u\n", controller);
         result = 0;
     }
 
@@ -49,6 +50,10 @@ struct ObjectState * ObjectGetSelectedObject(unsigned selectorIdx) {
             result = &Objects[ii];
             break;
         }
+    }
+
+    if (result == NULL) {
+        Log("selector not over object! %u\n", selectorIdx);
     }
 
     return result;
@@ -77,6 +82,7 @@ void ObjectMove(unsigned objIdx, enum ActionDirection direction) {
             }
             break;
         default:
+            Log("invalid direction %u\n", direction);
             break;
     }
 
@@ -85,7 +91,6 @@ void ObjectMove(unsigned objIdx, enum ActionDirection direction) {
         Objects[objIdx].pos.row,
         Objects[objIdx].pos.column
     );
-    // debugf("ObjectMove %d %d %d", objIdx, Objects[objIdx].pos.row, Objects[objIdx].pos.column);
 }
 
 //-
@@ -133,6 +138,7 @@ void ObjectRender(void) {
 
 void ObjectUpdate(enum Controller player, struct Action * action) {
     if (action == NULL) {
+        Log("invalid condition\n");
         return;
     }
 
@@ -154,6 +160,7 @@ void ObjectUpdate(enum Controller player, struct Action * action) {
             }
             break;
         default:
+            Log("invalid action %u\n", action->type);
             break;
     }
 }

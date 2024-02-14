@@ -1,5 +1,5 @@
 #include "action.h"
-// #include <debug.h>
+#include "log.h"
 #include <stddef.h>
 
 //-
@@ -21,6 +21,7 @@ enum ActionDirection ActionButtonToDirection(enum Button button) {
             return West_e;
         }
         default: {
+            Log("%u\n", button);
             return ActionDirectionSize_e;
         }
     }
@@ -49,6 +50,7 @@ enum Color ActionButtonToColor(enum Button button) {
             return Grey_e;
         }
         default: {
+            Log("%u\n", button);
             return ColorSize_e;
         }
     }
@@ -61,17 +63,15 @@ enum Color ActionButtonToColor(enum Button button) {
 void ActionTranslate(enum Button button, struct Action * action) {
     unsigned const buttonIdx = PeripheralButtonToIdx(button);
     if ((buttonIdx >= ButtonSize_e) || (action == NULL)) {
-        // debugf("Bad button %d\n", buttonIdx);
+        Log("invalid condition %u\n", button);
         return;
     }
 
     if (button >= DPadUp_e) {
         action->type = Move_e;
         action->data.direction = ActionButtonToDirection(button);
-        // debugf("Move %d\n", action->data.direction);
     } else {
         action->type = Paint_e;
         action->data.color = ActionButtonToColor(button);
-        // debugf("Paint %d\n", action->data.color);
     }
 }

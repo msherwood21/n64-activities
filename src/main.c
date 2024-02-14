@@ -149,6 +149,7 @@ int main(void) {
 
             //- Send commands to objects
             if (pressedButtons) {
+                Log("input received %x\n", pressedButtons);
                 for (unsigned ii = 0; ii < ButtonSize_e; ++ii) {
                     unsigned const button = pressedButtons & (0x0001 << ii);
                     if (button) {
