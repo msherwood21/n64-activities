@@ -1,5 +1,11 @@
-all: oliver.z64
-.PHONY: all
+emulate: CFLAGS += -DDEBUG_EMULATE -Wall -Wpedantic -DD=1
+emulate: oliver.z64
+
+debug: CFLAGS += -DDEBUG_CART -Wall -Wpedantic -DD=1
+debug: oliver.z64
+
+release: CFLAGS += -DNDEBUG -Wall -Wpedantic
+release: oliver.z64
 
 BUILD_DIR = build
 SOURCE_DIR = src
@@ -7,6 +13,7 @@ include $(N64_INST)/include/n64.mk
 
 OBJS = $(BUILD_DIR)/action.o \
 	$(BUILD_DIR)/clock.o \
+	$(BUILD_DIR)/log.o \
 	$(BUILD_DIR)/main.o \
 	$(BUILD_DIR)/object.o \
 	$(BUILD_DIR)/objectLayout.o \

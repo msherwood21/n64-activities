@@ -1,5 +1,6 @@
 #include "render.h"
 #include <debug.h>
+#include <display.h>
 #include <graphics.h>
 
 #include <stddef.h>

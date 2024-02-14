@@ -1,7 +1,7 @@
 #include "action.h"
 #include "clock.h"
-#include <debug.h>
 #include <libdragon.h>
+#include "log.h"
 #include <n64sys.h>
 #include "object.h"
 #include "peripheral.h"
@@ -90,8 +90,8 @@ void DrawAcknowledgement(unsigned secondsToPauseGame) {
 }
 
 int main(void) {
-    //- Initialize subsystems. Never freed.
-    debug_init_isviewer();
+    //- Initialize subsystems. Never freed. LogInit must come first.
+    LogInit();
 
     ClockInit(FPS60_e);
     ObjectInit();

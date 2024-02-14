@@ -138,6 +138,8 @@ void ObjectUpdate(enum Controller player, struct Action * action) {
             );
             break;
         case Paint_e:
+            ;   //- This semi-colon makes us pre-C23 compliant and I'm not even
+                //  joking. https://stackoverflow.com/a/57742042
             struct ObjectState * object = ObjectGetSelectedObject(
                 ObjectControllerToSelector(player)
             );

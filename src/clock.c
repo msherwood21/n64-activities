@@ -1,5 +1,5 @@
 #include "clock.h"
-#include <debug.h>
+#include "log.h"
 #include <timer.h>
 
 #include <string.h>
@@ -73,8 +73,8 @@ uint32_t ClockEndFrame(ClockTick frameStart) {
 
     int32_t const frameDelta = DurationTicks[DurationSelection] - result;
     if (frameDelta < 0) {
-        debugf(
-            "ClockEndFrame: frameTicks %lu / frameDelta %ld / frameStart %lu\n",
+        Log(
+            "LATE frameTicks %lu / frameDelta %ld / frameStart %lu\n",
             result,
             frameDelta,
             frameStart
