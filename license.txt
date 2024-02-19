@@ -1,6 +1,5 @@
-Copyright Matthew Sherwood 2023
+Copyright Matthew Sherwood 2023 - 2024
 
 You, the reader of this text, have the express permission of the author(s) to
 read the contents of this repository. You do not have have permission to use,
 modify, distribute or otherwise tamper with these contents.
-
