@@ -126,7 +126,7 @@ int main(void) {
 
     //- Pre-game loop splash screen
     RenderStart();
-    DrawAcknowledgement(1);
+    DrawAcknowledgement(3);
     RenderFinish();
 
     //- Main loop

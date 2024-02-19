@@ -102,9 +102,25 @@ void PeripheralUpdateButtonState(void) {
     struct controller_data const keysUp = get_keys_up();
 
     for (int ii = 0; ii < ControllerCount; ++ii) {
-        // 0xf000, 0x0f00, 0x00f0 and 0x000f correspond to controller 1, 2,
-        // 3 and 4. See the CONTROLLER_1_INSERTED, etc. macros.
-        int const controllerId = (0xf << (3 - ii));
+        int controllerId = 0;
+        switch (ii) {
+            case 0:
+                controllerId = CONTROLLER_1_INSERTED;
+                break;
+            case 1:
+                controllerId = CONTROLLER_2_INSERTED;
+                break;
+            case 2:
+                controllerId = CONTROLLER_3_INSERTED;
+                break;
+            case 3:
+                controllerId = CONTROLLER_4_INSERTED;
+                break;
+            default:
+                Log("invalid controller %d\n", ii);
+                break;
+        }
+
         if (pluggedInControllers & controllerId) {
             // Check for buttons currently pressed
             if(keysDown.c[ii].start) { ButtonPressed[ii][StartIdx_e] = true; }
