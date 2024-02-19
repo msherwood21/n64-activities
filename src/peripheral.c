@@ -1,6 +1,6 @@
 #include "peripheral.h"
 #include "log.h"
-#include <controller.h>
+#include <libdragon.h>
 
 #include <string.h>
 #include <stdbool.h>

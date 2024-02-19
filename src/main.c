@@ -4,7 +4,7 @@
 #include "object.h"
 #include "peripheral.h"
 #include "render.h"
-#include <timer.h>
+#include <libdragon.h>
 
 #include <string.h>
 #include <stdio.h>

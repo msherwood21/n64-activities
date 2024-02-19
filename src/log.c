@@ -1,8 +1,6 @@
 #include "log.h"
 
-#include <stdint.h> // backtrace needs these definitions...
-#include <backtrace.h>
-#include <debug.h>
+#include <libdragon.h>
 
 #include <stdarg.h>
 #include <stdio.h>

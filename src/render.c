@@ -1,7 +1,6 @@
 #include "render.h"
 #include "log.h"
-#include <display.h>
-#include <graphics.h>
+#include <libdragon.h>
 
 #include <stddef.h>
 #include <string.h>

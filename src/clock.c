@@ -1,6 +1,6 @@
 #include "clock.h"
 #include "log.h"
-#include <timer.h>
+#include <libdragon.h>
 
 #include <string.h>
 
